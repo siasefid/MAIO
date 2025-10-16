@@ -1,5 +1,4 @@
-from sklearn.linear_model import LinearRegression, Ridge
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split
@@ -7,82 +6,25 @@ from sklearn.metrics import mean_squared_error
 from dataclasses import dataclass
 import numpy as np
 import joblib
-import os
+from pathlib import Path
+from math import sqrt
 
-def load_model(path="artifacts/model_rf.pkl"):
-    """
-    Load a saved model or pipeline.
-    Supports both:
-    - old format: {"pipeline": pipe, "feature_order": [...]}
-    - new format: trained model object directly
-    """
-    model_obj = joblib.load(path)
+def train_and_eval_models(X, y, out_dir=Path("artifacts")):
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Case 1: old bundle format
-    if isinstance(model_obj, dict) and "pipeline" in model_obj:
-        pipeline = model_obj["pipeline"]
-        feature_order = model_obj.get("feature_order", None)
-        return pipeline, feature_order
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Case 2: plain model (Ridge, RandomForest, etc.)
-    return model_obj, list(model_obj.feature_names_in_)
+    pipe = Pipeline([
+        ("scaler", StandardScaler()),
+        ("model", Ridge(alpha=1.0))
+    ])
+    pipe.fit(X_train, y_train)
 
+    preds = pipe.predict(X_test)
+    rmse = sqrt(mean_squared_error(y_test, preds))
 
-def build_model(model_type="linear"):
-    if model_type == "linear":
-        return Pipeline([
-            ("scaler", StandardScaler()),
-            ("regressor", LinearRegression())
-        ])
-    elif model_type == "ridge":
-        return Pipeline([
-            ("scaler", StandardScaler()),
-            ("regressor", Ridge(alpha=1.0))
-        ])
-    elif model_type == "rf":
-        return Pipeline([
-            ("regressor", RandomForestRegressor(
-                n_estimators=200, random_state=42, n_jobs=-1
-            ))
-        ])
-    else:
-        raise ValueError(f"Unknown model_type: {model_type}")
+    model_path = out_dir / "model_baseline.pkl"
+    joblib.dump(pipe, model_path)
 
-
-
-@dataclass
-class TrainResult:
-    rmse: float
-    n_train: int
-    n_test: int
-    model_path: str
-
-def train_and_eval_models(X, y, out_dir="artifacts", test_size=0.2, random_state=42):
-    from sklearn.model_selection import train_test_split
-    from sklearn.metrics import mean_squared_error
-    import numpy as np
-    import joblib, os
-
-    Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=test_size, random_state=random_state)
-
-    results = {}
-
-    for name in ["linear", "ridge", "rf"]:
-        model = build_model(name)
-        model.fit(Xtr, ytr)
-        preds = model.predict(Xte)
-        rmse = float(np.sqrt(mean_squared_error(yte, preds)))
-        results[name] = rmse
-
-    best_name = min(results, key=results.get)
-    best_model = build_model(best_name)
-    best_model.fit(X, y)
-
-    os.makedirs(out_dir, exist_ok=True)
-    model_path = os.path.join(out_dir, f"model_{best_name}.pkl")
-    joblib.dump(best_model, model_path)
-
-    # ✅ compute test metrics for compatibility
-    best_rmse = results[best_name]
-
-    return TrainResult(rmse=best_rmse, n_train=len(Xtr), n_test=len(Xte), model_path=model_path)
+    print(f"✅ Model trained. RMSE: {rmse:.2f}")
+    return rmse, model_path
