@@ -24,6 +24,9 @@ jobs:
           pip install -r requirements.txt
           pip install pytest
 
+      - name: Set PYTHONPATH
+        run: echo "PYTHONPATH=src" >> $GITHUB_ENV
+
       - name: Run tests
         run: pytest -q
 
@@ -42,4 +45,3 @@ jobs:
           context: .
           push: false
           tags: diabetes-risk-service:v0.1
-  
