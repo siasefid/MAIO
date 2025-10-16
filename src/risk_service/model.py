@@ -8,6 +8,19 @@ import numpy as np
 import joblib
 import os
 
+def load_model(path=None):
+    """Load the most recent trained model (or a specific path)."""
+    if path is None:
+        artifacts = os.listdir("artifacts")
+        pkl_files = [f for f in artifacts if f.endswith(".pkl")]
+        if not pkl_files:
+            raise FileNotFoundError("No model file found in artifacts/")
+        # pick the latest saved model
+        path = os.path.join("artifacts", sorted(pkl_files)[-1])
+    model = joblib.load(path)
+    return model
+
+
 def build_model(model_type="linear"):
     if model_type == "linear":
         return Pipeline([
