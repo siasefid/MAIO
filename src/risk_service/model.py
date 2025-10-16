@@ -62,3 +62,6 @@ def train_and_eval_models(X, y, out_dir="artifacts", test_size=0.2, random_state
     joblib.dump(best_model, model_path)
 
     return results, best_name, model_path
+
+# Backward compatibility for old tests
+train_and_eval = train_and_eval_models
