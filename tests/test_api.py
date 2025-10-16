@@ -1,5 +1,5 @@
 from risk_service.data import load_dataset
-from risk_service.model import train_and_eval, load_model
+from risk_service.model import train_and_eval_models, load_model
 import pandas as pd
 
 def test_pipeline_predict(tmp_path):
