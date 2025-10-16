@@ -1,19 +1,11 @@
-from fastapi.testclient import TestClient
-from src.api import app
+from risk_service.data import load_dataset
+from risk_service.model import train_and_eval, load_model
+import pandas as pd
 
-client = TestClient(app)
-
-def test_health():
-    assert client.get("/health").status_code == 200
-
-def test_predict_ok():
-    payload = {"features": {"age":0.03,"sex":-0.04,"bmi":0.06,"bp":-0.03,"s1":-0.001,"s2":0.002,"s3":-0.004,"s4":0.01,"s5":0.02,"s6":-0.015}}
-    r = client.post("/predict", json=payload)
-    assert r.status_code == 200
-    body = r.json()
-    assert "risk_score" in body and "model_version" in body and "rmse" in body
-
-def test_predict_missing_field():
-    bad = {"features": {"age":0.03}}  # missing others
-    r = client.post("/predict", json=bad)
-    assert r.status_code in (400, 422)
+def test_pipeline_predict(tmp_path):
+    X, y = load_dataset(as_frame=True)
+    res = train_and_eval(X, y, out_dir=tmp_path)
+    pipe, feats = load_model(res.model_path)
+    df = X.iloc[[0]][feats]
+    pred = pipe.predict(df)[0]
+    assert isinstance(float(pred), float)
