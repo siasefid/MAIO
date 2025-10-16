@@ -9,17 +9,23 @@ import numpy as np
 import joblib
 import os
 
-def load_model(path=None):
-    """Load the most recent trained model (or a specific path)."""
-    if path is None:
-        artifacts = os.listdir("artifacts")
-        pkl_files = [f for f in artifacts if f.endswith(".pkl")]
-        if not pkl_files:
-            raise FileNotFoundError("No model file found in artifacts/")
-        # pick the latest saved model
-        path = os.path.join("artifacts", sorted(pkl_files)[-1])
-    model = joblib.load(path)
-    return model
+def load_model(path="artifacts/model_rf.pkl"):
+    """
+    Load a saved model or pipeline.
+    Supports both:
+    - old format: {"pipeline": pipe, "feature_order": [...]}
+    - new format: trained model object directly
+    """
+    model_obj = joblib.load(path)
+
+    # Case 1: old bundle format
+    if isinstance(model_obj, dict) and "pipeline" in model_obj:
+        pipeline = model_obj["pipeline"]
+        feature_order = model_obj.get("feature_order", None)
+        return pipeline, feature_order
+
+    # Case 2: plain model (Ridge, RandomForest, etc.)
+    return model_obj, list(model_obj.feature_names_in_)
 
 
 def build_model(model_type="linear"):
@@ -60,7 +66,7 @@ def train_and_eval_models(X, y, out_dir="artifacts", test_size=0.2, random_state
     Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=test_size, random_state=random_state)
 
     results = {}
-    
+
     for name in ["linear", "ridge", "rf"]:
         model = build_model(name)
         model.fit(Xtr, ytr)
