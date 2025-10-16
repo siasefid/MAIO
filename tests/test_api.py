@@ -1,11 +1,20 @@
 from risk_service.data import load_dataset
-from risk_service.model import train_and_eval_models, load_model
+from risk_service.model import train_and_eval_models
+from fastapi.testclient import TestClient
+from risk_service.api import app
+import joblib
 import pandas as pd
 
 def test_pipeline_predict(tmp_path):
     X, y = load_dataset(as_frame=True)
-    res = train_and_eval_models(X, y, out_dir=tmp_path)
-    pipe, feats = load_model(res.model_path)
-    df = X.iloc[[0]][feats]
-    pred = pipe.predict(df)[0]
-    assert isinstance(float(pred), float)
+    rmse, model_path = train_and_eval_models(X, y, out_dir=tmp_path)
+    model = joblib.load(model_path)
+    feats = X.columns
+
+    sample = X.iloc[[0]][feats].to_dict(orient="records")[0]
+    client = TestClient(app)
+    response = client.post("/predict", json=sample)
+
+    assert response.status_code == 200
+    assert "prediction" in response.json()
+
