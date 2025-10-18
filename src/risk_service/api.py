@@ -4,7 +4,7 @@ from .model import predict_single
 
 app = FastAPI(
     title="Diabetes Progression Risk Service",
-    version="v0.2",
+    version="v0.1",
     description="Predict short-term diabetes progression risk score."
 )
 
@@ -24,13 +24,13 @@ class PredictRequest(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "model_version": "v0.2"}
+    return {"status": "ok", "model_version": "v0.1"}
 
 
 @app.post("/predict")
 def predict(req: PredictRequest):
     try:
-        pred = predict_single(req.dict())
+        pred = predict_single(req.model_dump())
         return {"prediction": pred}
     except FileNotFoundError as e:
         raise HTTPException(status_code=500, detail=str(e))

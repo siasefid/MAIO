@@ -1,4 +1,4 @@
-from sklearn.linear_model import Ridge
+from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split
@@ -14,7 +14,7 @@ MODEL_PATH = Path("artifacts/model_baseline.pkl")
 
 def train_and_eval_models(X, y, out_dir=Path("artifacts")):
     """
-    Train Ridge Regression model on diabetes data and evaluate RMSE.
+    Train baseline LinearRegression model on diabetes data and evaluate RMSE.
     Saves the trained pipeline to out_dir/model_baseline.pkl.
     Returns (rmse, model_path).
     """
@@ -26,7 +26,7 @@ def train_and_eval_models(X, y, out_dir=Path("artifacts")):
 
     pipe = Pipeline([
         ("scaler", StandardScaler()),
-        ("model", Ridge(alpha=1.0))
+        ("model", LinearRegression())
     ])
 
     pipe.fit(X_train, y_train)

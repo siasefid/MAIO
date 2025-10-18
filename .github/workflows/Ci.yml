@@ -2,15 +2,15 @@ name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
   pull_request:
 
-permissions:
-  contents: read
-  packages: write
+env:
+  PYTHONPATH: src
 
 jobs:
-  build-train-test-docker:
+  lint-test-train:
     runs-on: ubuntu-latest
 
     steps:
@@ -24,39 +24,36 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install -U pip
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest
+          pip install ruff
 
-      - name: Set PYTHONPATH
-        run: echo "PYTHONPATH=src" >> $GITHUB_ENV
+      - name: Lint
+        run: ruff check src tests
 
-      - name: Run tests
-        run: pytest -q
+      - name: Unit tests
+        run: pytest
 
-      - name: Train model
-        run: python -m risk_service.train
+      - name: Training smoke
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from risk_service.data import load_dataset
+          from risk_service.model import train_and_eval_models
+
+          X, y = load_dataset(as_frame=True)
+          rmse, _ = train_and_eval_models(X, y)
+          Path("metrics.txt").write_text(f"{rmse:.2f}\n")
+          PY
 
       - name: Upload model artifact
         uses: actions/upload-artifact@v4
         with:
-          name: trained-model
+          name: model-baseline
           path: artifacts/model_baseline.pkl
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+      - name: Upload RMSE metric
+        uses: actions/upload-artifact@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: ghcr.io/siasefid/maio/diabetes-risk-service:v0.2
-
-
-
-
+          name: rmse
+          path: metrics.txt
