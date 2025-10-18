@@ -4,7 +4,11 @@ on:
   push:
     branches:
       - main
+      - version1
   pull_request:
+    branches:
+      - main
+      - version1
 
 env:
   PYTHONPATH: src
