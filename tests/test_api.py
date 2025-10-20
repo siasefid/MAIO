@@ -1,11 +1,11 @@
+from pathlib import Path
+import shutil
+
 from fastapi.testclient import TestClient
+
 from risk_service.api import app
 from risk_service.data import load_dataset
 from risk_service.model import train_and_eval_models
-import joblib
-import pandas as pd
-import shutil
-from pathlib import Path
 
 client = TestClient(app)
 
